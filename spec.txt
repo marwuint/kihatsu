@@ -1,0 +1,48 @@
+specifikacija enobitnega stroja:
+
+to je stroj/procesor z ločenim programskim spominom in delovnim spominom.
+
+bit v delovnem spominu se naslavlja s sedmimi biti, zato je na voljo 128 bitov.
+
+programski spomin je velik za 65536 inštrukcij. ena inštrukcija je dolga 2 bajta in je sledeče oblike:
+
+	naslov-vir naslov-destinacija operacija
+
+naslova sta sedem bitna, operacija pa je dvobitna. inštrukcija je dolga 16 bitov, zato je lahko program velik do 128 kibibajtov.
+
+možne operacije so:
+
+	00 kopiraj 16 bitov iz delovnega spomina v delovni spomin iz vira na destinacijo, bit po bit od +0 do +15
+	01 kopiraj 16 bitov iz programskega spomina v delovni spomin iz vira na destinacijo, bit po bit od +0 do +15
+	10 nand v naslov-destinacija shrani rezultat logične ne-in operacije med dvema bitoma na podanih naslovih v programskem spominu
+	11 xor v naslov-destinacija shrani rezultat logične ekskluzivni-ali operacije med dvema bitoma na podanih naslovih v programskem spominu
+
+stroj ima števec, ki hrani lokacijo, od koder se izvaja program. ko se ena inštrukcija izvaja, kaže programski števec na naslednjo. izvajanje se začne na inštrukciji 0. programski števec je 16 bitna vrednost, shranjena v delovnem spominu na naslovih od 0 do 15 v obliki z najpomembnejšim bitom najprej.
+
+z delovnim spominom se zato operira na nivoju bitov in sklopov 16 bitov. operacija za kopiranje 16 bitov obstaja zato, da lahko v eni inštrukciji naredimo skok na poljuben naslov, tako da neko vrednost prekopiramo v delovni spomin na naslov 0 (programski števec). s to operacijo je moč brati iz programskega spomina zato, da se tam lahko hrani neke statične podatke/dobesedne vrednosti. seveda je mogoče delati tudi relativne skoke z bitnimi operacijami na območju programskega števca.
+
+izvorni naslov operacije za kopiranje 16 bitov iz programskega spomina naslavlja glede na 16 bajtov/glede na eno inštrukcijo, torej lahko dostopa samo do prvih 128 inštrukcij oziroma 256 bajtov, destinacijski naslov pa naslavlja glede na bit programskega spomina.
+
+operacija za kopiranje 16 bitov iz delovnega spomina pa naslavlja glede na bite, tako ko gre za izvorni kot tudi destinacijski naslov. če naslov nastavimo recimo na 1111111, bomo prebrali (ali napisali na) zadnji bit spomina in še 15 bitov izven spomina. seveda beremo preko spomina tudi če nastavimo naslov na recimo 1111110, tedaj preberemo 2 bita delovnega spomina in prvih 14 zunanjih bitov.
+
+obe operaciji najprej prekopirata v šestnajstbitni medpomnilnik, da lahko kopirata tudi območja, ki se prekrivajo.
+
+zemljevid naslavljanja
+	16 bitov programskega števca
+	4 vhodno/izhodni biti
+	108 bitov delovenga spomina
+	15 zunanjih bitov - delovni spomin
+
+vhodno/izhodni biti
+	in en bit vhoda v stroj
+	ina nov vhod v stroj je možen, program naj nastavi na 0, da dobi nov bit vhoda
+	out en bit izhoda iz stroja
+	outa program naj nastavi na 1, ko je v out napisal bit, ki ga želi poslati na izhod. emulator/strojna oprema bit počisti na 0, ko je prebrala izhod in je pripravljena na nov izhod
+
+branje iz out vrne zadnjo napisano vrednost
+ina in outa ob branju vedno vrneta resnično stanje, pisanje v ina in outa ne sme spremeniti tega stanja. to je zato, ker bi lahko vhod postal mogoč med izvajanjem kode, ki piše na izhod, s čimer bi se prepisalo z1 z ničlo - race condition, ki vodi v dos
+branje iz in vedno vrne zadnji sprejeti bit, pisanje v in iz istega razloga kot zgoraj ne prepiše te vrednosti
+
+po dogovoru, ko gre za bajte, se jih pošilja v vhod/izhod z najpomembnejšim bitom na začetku - big endian
+
+delovni spomin mora biti pred začetkom izvajanja nastavljen na same ničle, izjema je programski števec, ki je med izvajanjem prve inštrukcije 1, oba vhodna bita in bit, ki pove, da je izhod mogoč.
